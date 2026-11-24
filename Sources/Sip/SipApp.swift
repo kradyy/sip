@@ -198,6 +198,7 @@ final class AppModel {
 
     /// nil = until tomorrow.
     func pause(minutes: Int?) {
+        guard prefs.canSnooze else { return }
         let now = Date()
         reminder.pausedUntil = minutes.map { now.addingTimeInterval(TimeInterval($0 * 60)) }
             ?? calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now))
@@ -211,7 +212,7 @@ final class AppModel {
         writeNow()
     }
 
-    var isPaused: Bool { (reminder.pausedUntil ?? .distantPast) > Date() }
+    var isPaused: Bool { prefs.canSnooze && (reminder.pausedUntil ?? .distantPast) > Date() }
 
     // MARK: Drinking
 

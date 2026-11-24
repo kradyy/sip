@@ -500,6 +500,14 @@ struct NextReminderTests {
         #expect(rem(P(), s, now: "2026-06-01 10:10") == "2026-06-01 15:00:00")
     }
 
+    @Test func pauseIgnoredWithSnoozeOff() {
+        var s = ReminderState(anchor: e.d("2026-06-01 10:00"))
+        s.pausedUntil = e.d("2026-06-01 15:00")
+        var p = P()
+        p.snoozeMinutes = 0
+        #expect(rem(p, s, now: "2026-06-01 10:10") == "2026-06-01 10:45:00")
+    }
+
     @Test func pauseEarlierThanDueIsIgnored() {
         var s = ReminderState(anchor: e.d("2026-06-01 10:00"))
         s.pausedUntil = e.d("2026-06-01 10:20")

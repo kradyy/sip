@@ -82,7 +82,7 @@ extension Prefs {
         return Array(all.prefix(bottleOn ? bottle.safeChoices : all.count))
     }
 
-    /// Snooze set to Off (0 minutes): no reminder, preview included, can be snoozed or skipped. Only a drink closes it.
+    /// Snooze set to Off (0 minutes): no snooze, skip or pause. Only a drink closes a reminder, previews included.
     public var canSnooze: Bool { snoozeMinutes > 0 }
 
     /// How long a reminder stays locked: full-screen only, capped at 10 minutes.
@@ -104,7 +104,8 @@ extension Prefs {
     public func nextReminder(_ state: ReminderState, now: Date, calendar cal: Calendar, goalMet: Bool = false) -> Date? {
         var due = state.snoozedUntil
             ?? state.anchor.addingTimeInterval(minutesToSeconds(intervalMinutes))
-        if let paused = state.pausedUntil, paused > due { due = paused }
+        // A pause set before Snooze was turned Off doesn't count.
+        if canSnooze, let paused = state.pausedUntil, paused > due { due = paused }
         if goalMet, quietAfterGoal,
            let tomorrow = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: now)), tomorrow > due {
             due = tomorrow

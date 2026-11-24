@@ -256,12 +256,13 @@ private struct NextReminder: View {
                 Menu {
                     if model.isPaused {
                         Button("Resume reminders") { model.resume() }
-                    } else {
+                        Divider()
+                    } else if model.prefs.canSnooze {
                         Button("Pause for 1 hour") { model.pause(minutes: 60) }
                         Button("Pause for 3 hours") { model.pause(minutes: 180) }
                         Button("Pause until tomorrow") { model.pause(minutes: nil) }
+                        Divider()
                     }
-                    Divider()
                     Button("Remind me now") { model.showReminder(manual: true) }
                 } label: {
                     Image(systemName: "ellipsis.circle.fill").font(.title2)
@@ -493,7 +494,7 @@ private struct SettingsTab: View {
                         .fixedSize()
                     }
                     if !model.prefs.canSnooze {
-                        Text("No snooze and no skip: the only way past a reminder is drinking.")
+                        Text("No snooze, skip or pause: the only way past a reminder is drinking.")
                             .font(.caption).foregroundStyle(.white.opacity(0.5))
                     }
                     Switch("Quiet once goal is hit", isOn: $model.prefs.quietAfterGoal)
