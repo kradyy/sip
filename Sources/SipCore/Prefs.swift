@@ -10,11 +10,14 @@ public struct BottlePlan: Codable, Equatable, Sendable {
     public var steps: Int
     /// Amount buttons offered when checking in. 1 = just the planned sip.
     public var choices: Int
+    /// A glass size the user picked. nil = one sip (`portionML`).
+    public var customGlassML: Int?
 
-    public init(ml: Int = 1750, steps: Int = 8, choices: Int = 1) {
+    public init(ml: Int = 1750, steps: Int = 8, choices: Int = 1, customGlassML: Int? = nil) {
         self.ml = ml
         self.steps = steps
         self.choices = choices
+        self.customGlassML = customGlassML
     }
 
     /// Tolerant like `Prefs`: a file saved before a field existed keeps the rest of the bottle.
@@ -24,6 +27,7 @@ public struct BottlePlan: Codable, Equatable, Sendable {
         ml = (try? c.decodeIfPresent(Int.self, forKey: .ml)) ?? d.ml
         steps = (try? c.decodeIfPresent(Int.self, forKey: .steps)) ?? d.steps
         choices = (try? c.decodeIfPresent(Int.self, forKey: .choices)) ?? d.choices
+        customGlassML = (try? c.decodeIfPresent(Int.self, forKey: .customGlassML)) ?? nil
     }
 
     /// Clamped to sane ranges: always use these, never the raw (possibly hand-edited) values.
@@ -33,6 +37,9 @@ public struct BottlePlan: Codable, Equatable, Sendable {
 
     /// Rounded up, so drinking at every step always finishes the bottle (1750 / 8 → 219).
     public var portionML: Int { (safeML + safeSteps - 1) / safeSteps }
+
+    /// What one check-in logs: the picked glass, or one sip.
+    public var glassML: Int { customGlassML.map { min(max(1, $0), 5000) } ?? portionML }
 
     /// Whole steps covered by `ml` drunk today. Drinking the full bottle counts as every step.
     public func stepsDone(_ ml: Int) -> Int {

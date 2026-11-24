@@ -424,3 +424,78 @@ struct CheckInAmountTests {
         #expect(back.bottle.choices == 3)
     }
 }
+
+@Suite("Bottle plan · custom glass")
+struct CustomGlassTests {
+    func prefs(glass: Int?, ml: Int = 1750, steps: Int = 8) -> Prefs {
+        var p = Prefs()
+        p.bottle = BottlePlan(ml: ml, steps: steps, customGlassML: glass)
+        p.applyBottle()
+        return p
+    }
+
+    @Test func defaultGlassIsOneSip() {
+        #expect(Prefs().bottle.customGlassML == nil)
+        #expect(Prefs().glassML == 219)
+    }
+
+    @Test func pickedGlassIsLoggedAndOffered() {
+        let p = prefs(glass: 250)
+        #expect(p.glassML == 250)
+        #expect(p.checkInAmounts == [250])
+    }
+
+    @Test func pickedGlassKeepsGoalAndInterval() {
+        let p = prefs(glass: 330)
+        #expect(p.dailyGoalML == 1750)
+        #expect(p.intervalMinutes == 68)
+    }
+
+    @Test func pickedGlassSurvivesBottleChanges() {
+        #expect(prefs(glass: 250, ml: 2000, steps: 6).glassML == 250)
+    }
+
+    @Test func automaticGlassFollowsTheBottle() {
+        #expect(prefs(glass: nil, ml: 2000, steps: 5).glassML == 400)
+    }
+
+    @Test(arguments: [(0, 1), (-50, 1), (Int.min, 1), (6000, 5000), (Int.max, 5000)])
+    func absurdGlassIsClamped(glass: Int, expected: Int) {
+        #expect(prefs(glass: glass).glassML == expected)
+    }
+
+    @Test func turningTheBottleOffKeepsTheGlass() {
+        var p = prefs(glass: 330)
+        p.bottleOn = false
+        p.applyBottle()
+        #expect(p.glassML == 330)
+    }
+
+    @Test func customGlassRoundTripsAndOldFilesStayAutomatic() throws {
+        let back = try JSONDecoder().decode(Prefs.self, from: JSONEncoder().encode(prefs(glass: 300)))
+        #expect(back.bottle.customGlassML == 300)
+        let old = try JSONDecoder().decode(Prefs.self, from: Data(#"{"bottle":{"ml":1750,"steps":8}}"#.utf8))
+        #expect(old.bottle.customGlassML == nil)
+        #expect(old.glassML == 219)
+    }
+}
+
+@Suite("Snooze off")
+struct SnoozeOffTests {
+    @Test(arguments: [(10, true), (1, true), (0, false), (-5, false), (Int.min, false)])
+    func canSnooze(minutes: Int, expected: Bool) {
+        var p = Prefs()
+        p.snoozeMinutes = minutes
+        #expect(p.canSnooze == expected)
+    }
+
+    @Test func defaultAllowsSnooze() { #expect(Prefs().canSnooze) }
+
+    @Test func offSurvivesSaving() throws {
+        var p = Prefs()
+        p.snoozeMinutes = 0
+        let back = try JSONDecoder().decode(Prefs.self, from: JSONEncoder().encode(p))
+        #expect(back.snoozeMinutes == 0)
+        #expect(!back.canSnooze)
+    }
+}

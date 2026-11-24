@@ -443,7 +443,7 @@ private struct SettingsTab: View {
                             Text("\(model.prefs.bottle.safeChoices)").monospacedDigit().fontWeight(.semibold)
                             Stepper("", value: $model.prefs.bottle.choices, in: 1...4).labelsHidden()
                         }
-                        Text("\(model.prefs.glassML) ml per sip · a reminder every \(model.prefs.intervalMinutes) min within your active hours · \(model.prefs.bottle.safeChoices == 1 ? "one tap to check in" : "\(model.prefs.bottle.safeChoices) amounts to pick from")")
+                        Text("\(model.prefs.bottle.portionML) ml per sip · a reminder every \(model.prefs.intervalMinutes) min within your active hours · \(model.prefs.bottle.safeChoices == 1 ? "one tap to check in" : "\(model.prefs.bottle.safeChoices) amounts to pick from")")
                             .font(.caption)
                             .foregroundStyle(.white.opacity(0.55))
                     }
@@ -485,10 +485,16 @@ private struct SettingsTab: View {
                         Text("Snooze for")
                         Spacer()
                         Picker("", selection: $model.prefs.snoozeMinutes) {
-                            ForEach(options([5, 10, 15, 30], model.prefs.snoozeMinutes), id: \.self) { Text("\($0) min").tag($0) }
+                            ForEach(options([0, 5, 10, 15, 30], model.prefs.snoozeMinutes), id: \.self) {
+                                Text($0 <= 0 ? "Off" : "\($0) min").tag($0)
+                            }
                         }
                         .labelsHidden()
                         .fixedSize()
+                    }
+                    if !model.prefs.canSnooze {
+                        Text("No snooze and no skip: the only way past a reminder is drinking.")
+                            .font(.caption).foregroundStyle(.white.opacity(0.5))
                     }
                     Switch("Quiet once goal is hit", isOn: $model.prefs.quietAfterGoal)
                     Switch("Sounds", isOn: $model.prefs.sound)
@@ -500,21 +506,27 @@ private struct SettingsTab: View {
                         Spacer()
                         Text(liters(model.prefs.dailyGoalML))
                             .monospacedDigit().fontWeight(.semibold)
-                        Stepper("", value: $model.prefs.dailyGoalML, in: 500...6000, step: 100).labelsHidden()
-                            .disabled(model.prefs.bottleOn)
+                        if model.prefs.bottleOn {
+                            Stepper("", value: $model.prefs.bottle.ml, in: 250...5000, step: 50).labelsHidden()
+                        } else {
+                            Stepper("", value: $model.prefs.dailyGoalML, in: 500...6000, step: 100).labelsHidden()
+                        }
                     }
                     HStack {
                         Text("Glass size")
                         Spacer()
-                        Picker("", selection: $model.prefs.glassML) {
-                            ForEach(options([150, 200, 250, 300, 330, 400, 500], model.prefs.glassML), id: \.self) { Text("\($0) ml").tag($0) }
+                        Picker("", selection: glassSize) {
+                            let sip = model.prefs.bottleOn ? [model.prefs.bottle.portionML] : []
+                            ForEach(options([150, 200, 250, 300, 330, 400, 500] + sip, model.prefs.glassML), id: \.self) { ml in
+                                Text(sip.contains(ml) ? "\(ml) ml · one sip" : "\(ml) ml").tag(ml)
+                            }
                         }
                         .labelsHidden()
                         .fixedSize()
-                        .disabled(model.prefs.bottleOn)
                     }
                     if model.prefs.bottleOn {
-                        Text("Set by your bottle plan").font(.caption).foregroundStyle(.white.opacity(0.5))
+                        Text("Your daily goal is the bottle. A reminder logs one glass.")
+                            .font(.caption).foregroundStyle(.white.opacity(0.5))
                     }
                 }
 
@@ -560,6 +572,19 @@ private struct SettingsTab: View {
     }
 
     /// Keeps a hand-edited value selectable instead of showing a blank picker.
+    /// With a bottle plan, picking the sip size goes back to automatic, so later bottle changes keep it in step.
+    private var glassSize: Binding<Int> {
+        Binding(
+            get: { model.prefs.glassML },
+            set: { ml in
+                if model.prefs.bottleOn {
+                    model.prefs.bottle.customGlassML = ml == model.prefs.bottle.portionML ? nil : ml
+                } else {
+                    model.prefs.glassML = ml
+                }
+            })
+    }
+
     private func options(_ base: [Int], _ current: Int) -> [Int] {
         Set(base + [current]).sorted()
     }

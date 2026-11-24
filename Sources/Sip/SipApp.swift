@@ -147,7 +147,8 @@ final class AppModel {
 
         if reminderVisible {
             // A banner nobody answered turns into a snooze instead of hanging around forever.
-            if prefs.style == .banner, let shownAt, now.timeIntervalSince(shownAt) > 120 { snooze() }
+            // With snooze off it stays until you drink.
+            if prefs.style == .banner, prefs.canSnooze, let shownAt, now.timeIntervalSince(shownAt) > 120 { snooze() }
         } else if let next = nextReminderAt, next <= now {
             showReminder(manual: false)
         }
@@ -179,6 +180,7 @@ final class AppModel {
     /// Pass the reminder's id from overlay buttons, so a late click on a fading reminder does nothing.
     func snooze(id: UUID? = nil) {
         if let id, !isCurrent(id) { return }
+        guard prefs.canSnooze else { return }   // snooze is off: only a drink closes a reminder, previews included
         if !shownIsManual { reminder.snooze(at: Date(), minutes: prefs.snoozeMinutes) }
         closeReminder()
         refreshNext()
@@ -187,6 +189,7 @@ final class AppModel {
 
     func skip(id: UUID? = nil) {
         if let id, !isCurrent(id) { return }
+        guard prefs.canSnooze else { return }
         if !shownIsManual { reminder.restart(at: Date()) }
         closeReminder()
         refreshNext()

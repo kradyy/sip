@@ -214,6 +214,8 @@ struct OverlayView: View {
     @State private var unlocked: Bool
     @State private var pickedML: Int
     private var captcha: Bool { lockSeconds > 0 }
+    /// With snooze off there's no way out but drinking, previews included.
+    private var canDismiss: Bool { model.prefs.canSnooze }
 
     init(model: AppModel, id: UUID, compact: Bool, showsCard: Bool) {
         self.model = model
@@ -368,17 +370,20 @@ struct OverlayView: View {
                 }
             }
 
-            HStack(spacing: 18) {
-                Button("Snooze \(model.prefs.snoozeMinutes) min") { model.snooze(id: id) }
-                    .keyboardShortcut(armed && !compact && !captcha ? .cancelAction : nil)   // after a lock, only clicks count
-                Button("Skip this one") { model.skip(id: id) }
+            if canDismiss {
+                HStack(spacing: 18) {
+                    Button("Snooze \(model.prefs.snoozeMinutes) min") { model.snooze(id: id) }
+                        .keyboardShortcut(armed && !compact && !captcha ? .cancelAction : nil)   // after a lock, only clicks count
+                    Button("Skip this one") { model.skip(id: id) }
+                }
+                .buttonStyle(.plain)
+                .font(.callout.weight(.medium))
+                .foregroundStyle(.white.opacity(0.6))
             }
-            .buttonStyle(.plain)
-            .font(.callout.weight(.medium))
-            .foregroundStyle(.white.opacity(0.6))
 
             if !compact {
-                Text(captcha ? "Tick the box once you've had your water" : "Return logs a glass · Esc snoozes")
+                Text(captcha ? "Tick the box once you've had your water"
+                     : canDismiss ? "Return logs a glass · Esc snoozes" : "Return logs a glass")
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.35))
             }
@@ -404,7 +409,7 @@ struct OverlayView: View {
         if model.prefs.bottleOn {
             let plan = model.prefs.bottle
             let next = min(plan.safeSteps, plan.stepsDone(model.stats.todayML) + 1)
-            Text("Sip \(next) of \(plan.safeSteps) · \(plan.portionML) ml".uppercased())
+            Text("Sip \(next) of \(plan.safeSteps) · \(model.prefs.glassML) ml".uppercased())
                 .font(.caption.weight(.heavy))
                 .tracking(1.2)
                 .foregroundStyle(Theme.aqua)
@@ -454,7 +459,9 @@ struct OverlayView: View {
                     .foregroundStyle(Theme.flame)
             }
 
-            HoldButton(title: "Hold 3 s to snooze (emergency)", seconds: 3) { model.snooze(id: id) }
+            if canDismiss {
+                HoldButton(title: "Hold 3 s to snooze (emergency)", seconds: 3) { model.snooze(id: id) }
+            }
         }
         .transition(.scale(scale: 0.9).combined(with: .opacity))
     }

@@ -68,10 +68,11 @@ extension Prefs {
 
     /// Derives goal, amount per reminder and interval from the bottle. The interval is rounded up so
     /// exactly `steps` reminders fit the window: 1750 ml / 8 over 08:00–17:00 → 219 ml every 68 min.
+    /// A glass size the user picked replaces the sip amount.
     public mutating func applyBottle() {
         guard bottleOn else { return }
         dailyGoalML = bottle.safeML
-        glassML = bottle.portionML
+        glassML = bottle.glassML
         intervalMinutes = max(5, Int((Double(activeMinutes) / Double(bottle.safeSteps)).rounded(.up)))
     }
 
@@ -80,6 +81,9 @@ extension Prefs {
         let all = [glassML] + [150, 330, 500].filter { $0 != glassML }
         return Array(all.prefix(bottleOn ? bottle.safeChoices : all.count))
     }
+
+    /// Snooze set to Off (0 minutes): no reminder, preview included, can be snoozed or skipped. Only a drink closes it.
+    public var canSnooze: Bool { snoozeMinutes > 0 }
 
     /// How long a reminder stays locked: full-screen only, capped at 10 minutes.
     public var effectiveLockSeconds: Int { style == .fullscreen ? min(max(0, lockSeconds), 600) : 0 }
