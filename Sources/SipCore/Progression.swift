@@ -57,6 +57,8 @@ public enum Rules {
     public static let volumeCapPercent = 150     // volume XP stops at 150% of the day's goal
     public static let onCueXP = 5
     public static let onCueWindow: TimeInterval = 120
+    /// A reminder held back by a call waits this long after the call ends, so it doesn't pop up as you hang up.
+    public static let callGrace: TimeInterval = 60
     public static let goalXP = 50
     public static let streakXPPerDay = 5         // goal day bonus = 5 × streak length …
     public static let streakXPMaxDays = 20       // … capped at a 20-day streak (+100)

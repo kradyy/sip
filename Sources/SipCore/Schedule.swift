@@ -85,6 +85,15 @@ extension Prefs {
     /// Snooze set to Off (0 minutes): no snooze, skip or pause. Only a drink closes a reminder, previews included.
     public var canSnooze: Bool { snoozeMinutes > 0 }
 
+    /// True while reminders wait for a call: the camera or microphone is in use (`busy`), or was until
+    /// less than `Rules.callGrace` ago (`lastBusy`).
+    public func holdsForCall(busy: Bool, lastBusy: Date?, now: Date) -> Bool {
+        guard holdDuringCalls else { return false }
+        if busy { return true }
+        guard let lastBusy else { return false }
+        return now.timeIntervalSince(lastBusy) < Rules.callGrace
+    }
+
     /// How long a reminder stays locked: full-screen only, capped at 10 minutes.
     public var effectiveLockSeconds: Int { style == .fullscreen ? min(max(0, lockSeconds), 600) : 0 }
 

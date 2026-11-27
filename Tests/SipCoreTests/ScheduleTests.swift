@@ -714,3 +714,41 @@ struct LockTests {
         #expect(prefs(.fullscreen, lock: Int.min).onCueDeadline(shownAt: t0) == t0 + Rules.onCueWindow)
     }
 }
+
+@Suite("Hold during calls")
+struct CallHoldTests {
+    let now = Date(timeIntervalSinceReferenceDate: 800_000_000)
+
+    @Test func defaultIsOn() { #expect(Prefs().holdDuringCalls) }
+
+    @Test func holdsWhileBusy() {
+        #expect(Prefs().holdsForCall(busy: true, lastBusy: now, now: now))
+        #expect(Prefs().holdsForCall(busy: true, lastBusy: nil, now: now))
+    }
+
+    @Test func freeWithNoCallSeen() {
+        #expect(!Prefs().holdsForCall(busy: false, lastBusy: nil, now: now))
+    }
+
+    @Test func waitsAMinuteAfterTheCall() {
+        let p = Prefs()
+        #expect(p.holdsForCall(busy: false, lastBusy: now - 10, now: now))
+        #expect(p.holdsForCall(busy: false, lastBusy: now - Rules.callGrace + 1, now: now))
+        #expect(!p.holdsForCall(busy: false, lastBusy: now - Rules.callGrace, now: now))
+        #expect(!p.holdsForCall(busy: false, lastBusy: now - 3600, now: now))
+    }
+
+    @Test func switchedOffNeverHolds() {
+        var p = Prefs()
+        p.holdDuringCalls = false
+        #expect(!p.holdsForCall(busy: true, lastBusy: now, now: now))
+        #expect(!p.holdsForCall(busy: false, lastBusy: now - 5, now: now))
+    }
+
+    @Test func settingSurvivesSavingAndOldFilesDefaultOn() throws {
+        var p = Prefs()
+        p.holdDuringCalls = false
+        #expect(try !JSONDecoder().decode(Prefs.self, from: JSONEncoder().encode(p)).holdDuringCalls)
+        #expect(try JSONDecoder().decode(Prefs.self, from: Data("{}".utf8)).holdDuringCalls)
+    }
+}

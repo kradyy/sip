@@ -92,6 +92,8 @@ final class AppModel {
     private(set) var stats = Stats()
     private(set) var nextReminderAt: Date?
     private(set) var reminderVisible = false
+    /// Camera or microphone in use (or was, a moment ago): reminders wait.
+    private(set) var holdingForCall = false
     private(set) var launchAtLogin = SMAppService.mainApp.status == .enabled
     var celebration: Celebration?
 
@@ -104,6 +106,7 @@ final class AppModel {
     @ObservationIgnored private var onCueUntil = Date.distantPast
     @ObservationIgnored private var shownIsManual = false
     @ObservationIgnored private var currentDay = ""
+    @ObservationIgnored private var lastBusyAt: Date?
     @ObservationIgnored private var saveTask: Task<Void, Never>?
 
     private init() {
@@ -145,11 +148,19 @@ final class AppModel {
         let now = Date()
         if calendar.dayKey(now) != currentDay { recompute(now: now) } else { refreshNext(now) }
 
-        if reminderVisible {
+        let busy = prefs.holdDuringCalls && CallDetector.inCall
+        if busy { lastBusyAt = now }
+        let hold = prefs.holdsForCall(busy: busy, lastBusy: lastBusyAt, now: now)
+        if holdingForCall != hold { holdingForCall = hold }
+
+        if reminderVisible, busy {
+            // The call wins. Nothing is snoozed or skipped: the reminder stays due and returns after the call.
+            closeReminder()
+        } else if reminderVisible {
             // A banner nobody answered turns into a snooze instead of hanging around forever.
             // With snooze off it stays until you drink.
             if prefs.style == .banner, prefs.canSnooze, let shownAt, now.timeIntervalSince(shownAt) > 120 { snooze() }
-        } else if let next = nextReminderAt, next <= now {
+        } else if !hold, let next = nextReminderAt, next <= now {
             showReminder(manual: false)
         }
     }

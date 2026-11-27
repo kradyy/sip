@@ -61,6 +61,8 @@ public struct Prefs: Codable, Equatable, Sendable {
     public var bottleOn = true
     /// No more reminders once today's goal is reached.
     public var quietAfterGoal = true
+    /// No reminder while the camera or microphone is in use; it shows once the call is over.
+    public var holdDuringCalls = true
     /// `Calendar` weekday numbers, 1 = Sunday … 7 = Saturday. Off days never break a streak.
     public var activeWeekdays: Set<Int> = Set(1...7)
     public var snoozeMinutes = 10
@@ -90,6 +92,7 @@ public struct Prefs: Codable, Equatable, Sendable {
         bottle = v(.bottle, d.bottle)
         bottleOn = v(.bottleOn, d.bottleOn)
         quietAfterGoal = v(.quietAfterGoal, d.quietAfterGoal)
+        holdDuringCalls = v(.holdDuringCalls, d.holdDuringCalls)
     }
 }
 

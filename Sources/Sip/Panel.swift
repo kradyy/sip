@@ -243,13 +243,15 @@ private struct NextReminder: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 10)) { ctx in
             HStack(spacing: 10) {
-                Image(systemName: model.isPaused ? "pause.circle.fill" : "bell.badge.fill")
+                let call = model.holdingForCall && !model.isPaused
+                Image(systemName: model.isPaused ? "pause.circle.fill" : call ? "video.circle.fill" : "bell.badge.fill")
                     .font(.title2)
                     .foregroundStyle(model.isPaused ? AnyShapeStyle(.white.opacity(0.6)) : AnyShapeStyle(Theme.water))
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(model.isPaused ? "Paused" : "Next reminder")
+                    Text(model.isPaused ? "Paused" : call ? "On a call · reminders wait" : "Next reminder")
                         .font(.caption).foregroundStyle(.white.opacity(0.6))
-                    Text(Self.describe(model.nextReminderAt, now: ctx.date))
+                    Text(call && (model.nextReminderAt ?? .distantFuture) <= ctx.date.addingTimeInterval(45)
+                         ? "Right after your call" : Self.describe(model.nextReminderAt, now: ctx.date))
                         .font(.callout.weight(.semibold))
                 }
                 Spacer()
@@ -498,6 +500,8 @@ private struct SettingsTab: View {
                             .font(.caption).foregroundStyle(.white.opacity(0.5))
                     }
                     Switch("Quiet once goal is hit", isOn: $model.prefs.quietAfterGoal)
+                    Switch("Hold reminders during calls", isOn: $model.prefs.holdDuringCalls)
+                        .help("While your camera or microphone is in use, reminders wait and show a minute after the call.")
                     Switch("Sounds", isOn: $model.prefs.sound)
                 }
 
